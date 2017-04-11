@@ -29,7 +29,12 @@ class Post
 
     query += 'LIMIT :limit ' unless limit.nil?
 
-    statement = db.prepare query
+    begin
+      statement = db.prepare query
+    rescue SQLite3::SQLException => e
+      puts "Unable to access database #{SQLITE_DB_FILE}"
+      abort e.message
+    end
 
     statement.bind_param('type', type) unless type.nil?
 
@@ -51,7 +56,12 @@ class Post
 
     db.results_as_hash = true
 
-    result = db.execute('SELECT * FROM posts WHERE  rowid = ?', id)
+    begin
+      result = db.execute('SELECT * FROM posts WHERE  rowid = ?', id)
+    rescue SQLite3::SQLException => e
+      puts "Unable to access database #{SQLITE_DB_FILE}"
+      abort e.message
+    end
 
     db.close
 
@@ -95,15 +105,20 @@ class Post
 
     post_hash = to_db_hash
 
-    db.execute(
-      'INSERT INTO posts (#' +
+    begin
+      db.execute(
+        'INSERT INTO posts (#' +
 
-        post_hash.keys.join(', ') +
+          post_hash.keys.join(', ') +
 
-        ") VALUES (#{('?,' * post_hash.size).chomp(',')})",
+          ") VALUES (#{('?,' * post_hash.size).chomp(',')})",
 
-      post_hash.values
-    )
+        post_hash.values
+      )
+    rescue SQLite3::SQLException => e
+      puts "Unable to access database #{SQLITE_DB_FILE}"
+      abort e.message
+    end
 
     insert_row_id = db.last_insert_row_id
 
